@@ -1,197 +1,331 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import { 
   Zap, Plus, FileText, Receipt, TrendingUp, ChevronLeft, 
-  Download, Printer, Trash2, Check, Settings as SettingsIcon, Users
+  Download, Printer, Trash2, Check, Settings as SettingsIcon, 
+  Users, Building2, Calendar, CreditCard, Mail, Phone, MapPin, 
+  Globe, Info, Search, Copy, CheckCircle2, AlertCircle, Clock
 } from 'lucide-react';
 
-/* --- COMPONENTS --- */
+/* --- CONFIGURATION --- */
+const CURRENCIES = [
+  { code: 'NGN', symbol: '₦', name: 'Nigerian Naira' },
+  { code: 'USD', symbol: '$', name: 'US Dollar' },
+  { code: 'GBP', symbol: '£', name: 'British Pound' },
+  { code: 'EUR', symbol: '€', name: 'Euro' },
+  { code: 'CAD', symbol: 'CA$', name: 'Canadian Dollar' },
+  { code: 'AUD', symbol: 'AU$', name: 'Australian Dollar' },
+  { code: 'GHS', symbol: 'GH₵', name: 'Ghanaian Cedi' },
+  { code: 'ZAR', symbol: 'R', name: 'South African Rand' },
+  { code: 'KES', symbol: 'KSh', name: 'Kenyan Shilling' },
+];
 
-const LandingPage = ({ onGetStarted }: any) => (
-  <div className="min-h-screen bg-white text-slate-900 flex flex-col items-center justify-center p-6 text-center">
-    <div className="bg-slate-900 text-white p-3 rounded-2xl mb-6"><Zap size={40} fill="currentColor" /></div>
-    <h1 className="text-4xl font-black mb-4">APA BizDesk</h1>
-    <p className="text-slate-500 mb-8 max-w-sm">Professional invoices and receipts made simple for your business.</p>
-    <button onClick={onGetStarted} className="w-full max-w-xs py-4 bg-green-500 text-white font-bold rounded-2xl shadow-lg shadow-green-100">Get Started Free</button>
-  </div>
-);
+const STATUSES = ['Draft', 'Sent', 'Unpaid', 'Partially Paid', 'Paid', 'Overdue', 'Cancelled'];
 
-const Onboarding = ({ onComplete }: any) => {
-  const [profile, setProfile] = useState({ name: '', phone: '', email: '', address: '' });
-  return (
-    <div className="max-w-xl mx-auto p-6 pt-12">
-      <h2 className="text-3xl font-bold mb-2">Business Setup</h2>
-      <p className="text-slate-500 mb-8">Enter your details to appear on your invoices.</p>
-      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); onComplete(profile); }}>
-        <input required className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-green-500 outline-none" placeholder="Business Name" onChange={e => setProfile({...profile, name: e.target.value})} />
-        <input required className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-green-500 outline-none" placeholder="Email" type="email" onChange={e => setProfile({...profile, email: e.target.value})} />
-        <input required className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-green-500 outline-none" placeholder="Phone Number" onChange={e => setProfile({...profile, phone: e.target.value})} />
-        <textarea required className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-green-500 outline-none" placeholder="Business Address" rows={3} onChange={e => setProfile({...profile, address: e.target.value})} />
-        <button className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl">Save Business Profile</button>
-      </form>
-    </div>
-  );
-};
+/* --- UTILS --- */
+const formatCurr = (val: number, symbol: string) => 
+  `${symbol}${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const Dashboard = ({ businessName, onAction }: any) => (
-  <div className="p-6 pt-12">
-    <div className="mb-8">
-      <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest mb-1">Welcome Back</p>
-      <h1 className="text-3xl font-black text-slate-900">{businessName}</h1>
-    </div>
-    
-    <div className="grid grid-cols-1 gap-4 mb-8">
-      <button onClick={() => onAction('create-invoice')} className="p-6 bg-green-500 text-white rounded-[2rem] font-bold flex items-center justify-between shadow-xl shadow-green-100">
-        <div className="flex items-center gap-4"><div className="bg-white/20 p-2 rounded-xl"><FileText /></div> Create New Invoice</div>
-        <Plus size={20} />
-      </button>
-      <button onClick={() => onAction('create-receipt')} className="p-6 bg-slate-900 text-white rounded-[2rem] font-bold flex items-center justify-between shadow-xl shadow-slate-200">
-        <div className="flex items-center gap-4"><div className="bg-white/20 p-2 rounded-xl"><Receipt /></div> Create New Receipt</div>
-        <Plus size={20} />
-      </button>
-    </div>
-
-    <div className="bg-white border border-slate-100 rounded-3xl p-8 text-center">
-      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300"><TrendingUp /></div>
-      <h3 className="font-bold text-slate-900">No Recent Activity</h3>
-      <p className="text-slate-400 text-sm mt-1">Your created documents will appear here.</p>
-    </div>
-  </div>
-);
-
-const DocumentPreview = ({ doc, profile, onBack }: any) => (
-  <div className="min-h-screen bg-slate-100 p-4 pb-24">
-    <button onClick={onBack} className="mb-6 flex items-center gap-2 font-bold text-slate-500"><ChevronLeft /> Back</button>
-    <div id="printable-area" className="bg-white w-full aspect-[1/1.4] rounded-xl shadow-2xl p-8 flex flex-col">
-      <div className="flex justify-between items-start mb-10">
-        <div>
-          <h2 className="text-2xl font-black text-slate-900">{profile.name}</h2>
-          <p className="text-[10px] text-slate-400 max-w-[150px] uppercase font-bold mt-1">{profile.address}</p>
-        </div>
-        <div className="text-right">
-          <h1 className="text-3xl font-black text-slate-200 uppercase tracking-tighter italic">{doc.type}</h1>
-          <p className="text-xs font-bold text-slate-900 mt-2"># {doc.number}</p>
-        </div>
-      </div>
-      
-      <div className="mb-10">
-        <p className="text-[10px] font-black text-slate-300 uppercase mb-1">Bill To</p>
-        <p className="font-bold text-slate-900">{doc.client || "Valued Customer"}</p>
-      </div>
-
-      <table className="w-full mb-10">
-        <thead>
-          <tr className="border-b-2 border-slate-900 text-left text-[10px] uppercase font-black text-slate-400">
-            <th className="pb-2">Description</th>
-            <th className="pb-2 text-right">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {doc.items.map((item: any, i: number) => (
-            <tr key={i} className="border-b border-slate-50">
-              <td className="py-4 text-sm font-bold text-slate-700">{item.desc || "Item Name"} (x{item.qty})</td>
-              <td className="py-4 text-right font-black text-slate-900">₦{(item.qty * item.price).toLocaleString()}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <div className="mt-auto pt-6 border-t-2 border-slate-900 flex justify-between items-center">
-        <span className="font-black text-slate-900 uppercase tracking-widest text-sm">Amount Paid</span>
-        <span className="text-3xl font-black text-green-600">₦{doc.total.toLocaleString()}</span>
-      </div>
-    </div>
-
-    <div className="fixed bottom-6 left-6 right-6 flex gap-3">
-      <button onClick={() => window.print()} className="flex-1 py-4 bg-slate-900 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-xl"><Printer size={20}/> Print / Save</button>
-      <button onClick={onBack} className="flex-1 py-4 bg-white border-2 border-slate-200 text-slate-600 font-bold rounded-2xl">Done</button>
-    </div>
-  </div>
-);
-
-const DocumentBuilder = ({ type, profile, onSave, onBack }: any) => {
-  const [client, setClient] = useState('');
-  const [items, setItems] = useState([{ id: 1, desc: '', qty: 1, price: 0 }]);
-  const total = items.reduce((a, b) => a + (b.qty * b.price), 0);
-
-  return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <button onClick={onBack} className="mb-6 flex items-center gap-2 font-bold text-slate-500"><ChevronLeft /> Back</button>
-      <h2 className="text-2xl font-black mb-6 text-slate-900">Create {type}</h2>
-      
-      <div className="space-y-6">
-        <div className="bg-white p-6 rounded-3xl shadow-sm space-y-4">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer</p>
-          <input className="w-full p-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-green-500" placeholder="Customer Name" onChange={e => setClient(e.target.value)} />
-        </div>
-
-        <div className="bg-white p-6 rounded-3xl shadow-sm space-y-4">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Items & Pricing</p>
-          {items.map((item, i) => (
-            <div key={item.id} className="p-4 bg-slate-50 rounded-2xl space-y-4 relative">
-              <input className="w-full bg-transparent border-b-2 border-slate-200 font-bold p-2 outline-none" placeholder="Item Name" onChange={e => {
-                const n = [...items]; n[i].desc = e.target.value; setItems(n);
-              }} />
-              <div className="flex gap-4">
-                <div className="flex-1"><label className="text-[9px] font-bold text-slate-400 uppercase">Qty</label><input type="number" className="w-full bg-transparent border-b-2 border-slate-200 font-bold p-2" onChange={e => {const n = [...items]; n[i].qty = Number(e.target.value); setItems(n);}} /></div>
-                <div className="flex-1"><label className="text-[9px] font-bold text-slate-400 uppercase">Price</label><input type="number" className="w-full bg-transparent border-b-2 border-slate-200 font-bold p-2" onChange={e => {const n = [...items]; n[i].price = Number(e.target.value); setItems(n);}} /></div>
-              </div>
-            </div>
-          ))}
-          <button onClick={() => setItems([...items, {id: Date.now(), desc: '', qty: 1, price: 0}])} className="w-full py-3 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold text-sm">+ Add Another Item</button>
-        </div>
-
-        <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white flex justify-between items-center shadow-xl">
-           <div><p className="text-[10px] font-bold text-slate-400 uppercase">Grand Total</p><p className="text-3xl font-black">₦{total.toLocaleString()}</p></div>
-           <button onClick={() => onSave({ type, client, items, total, number: Math.floor(1000 + Math.random() * 9000) })} className="px-6 py-4 bg-green-500 rounded-2xl font-black text-sm">Preview Document</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* --- MAIN APP --- */
+/* --- MAIN APP COMPONENTS --- */
 
 const App = () => {
   const [view, setView] = useState('landing');
   const [profile, setProfile] = useState<any>(null);
-  const [currentDoc, setCurrentDoc] = useState<any>(null);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [activeDoc, setActiveDoc] = useState<any>(null);
 
+  // Persistence
   useEffect(() => {
-    const saved = localStorage.getItem('apa_biz_profile');
-    if (saved) { setProfile(JSON.parse(saved)); setView('dashboard'); }
+    const p = localStorage.getItem('apa_profile');
+    const d = localStorage.getItem('apa_docs');
+    const c = localStorage.getItem('apa_customers');
+    if (p) setProfile(JSON.parse(p));
+    if (d) setDocuments(JSON.parse(d));
+    if (c) setCustomers(JSON.parse(c));
+    if (p) setView('dashboard');
   }, []);
 
-  const handleOnboarding = (data: any) => {
+  const saveProfile = (data: any) => {
     setProfile(data);
-    localStorage.setItem('apa_biz_profile', JSON.stringify(data));
+    localStorage.setItem('apa_profile', JSON.stringify(data));
     setView('dashboard');
   };
 
-  const saveAndPreview = (doc: any) => {
-    setCurrentDoc(doc);
+  const saveDocument = (doc: any) => {
+    const updated = doc.id 
+      ? documents.map(d => d.id === doc.id ? doc : d)
+      : [...documents, { ...doc, id: Date.now() }];
+    setDocuments(updated);
+    localStorage.setItem('apa_docs', JSON.stringify(updated));
+    setActiveDoc(doc);
     setView('preview');
   };
 
-  if (view === 'landing') return <LandingPage onGetStarted={() => setView('onboarding')} />;
-  if (view === 'onboarding') return <Onboarding onComplete={handleOnboarding} />;
-  if (view === 'preview') return <DocumentPreview doc={currentDoc} profile={profile} onBack={() => setView('dashboard')} />;
-  if (view === 'create-invoice') return <DocumentBuilder type="Invoice" profile={profile} onBack={() => setView('dashboard')} onSave={saveAndPreview} />;
-  if (view === 'create-receipt') return <DocumentBuilder type="Receipt" profile={profile} onBack={() => setView('dashboard')} onSave={saveAndPreview} />;
+  const duplicateDoc = (doc: any) => {
+    const newDoc = { ...doc, id: Date.now(), number: `${doc.type === 'Invoice' ? 'INV' : 'REC'}-${Math.floor(1000 + Math.random() * 9000)}`, status: 'Draft' };
+    saveDocument(newDoc);
+  };
 
+  if (view === 'landing') return <LandingPage onStart={() => setView('onboarding')} />;
+  if (view === 'onboarding') return <ProfileSettings profile={profile} onSave={saveProfile} isNew />;
+  
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      <main className="flex-1 pb-24">
-        {view === 'dashboard' && <Dashboard businessName={profile?.name} onAction={setView} />}
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans text-slate-900">
+      {/* Sidebar - Desktop */}
+      <aside className="hidden md:flex w-64 bg-slate-900 text-white flex-col p-6 sticky top-0 h-screen">
+        <div className="flex items-center gap-2 mb-10">
+          <div className="bg-green-500 p-1.5 rounded-lg"><Zap size={20} fill="currentColor"/></div>
+          <span className="text-xl font-black tracking-tighter">ApaBizDesk</span>
+        </div>
+        <nav className="space-y-1 flex-1">
+          <NavItem active={view === 'dashboard'} onClick={() => setView('dashboard')} icon={<TrendingUp size={18}/>} label="Dashboard" />
+          <NavItem active={view === 'history'} onClick={() => setView('history')} icon={<FileText size={18}/>} label="Documents" />
+          <NavItem active={view === 'customers'} onClick={() => setView('customers')} icon={<Users size={18}/>} label="Customers" />
+        </nav>
+        <NavItem active={view === 'settings'} onClick={() => setView('settings')} icon={<SettingsIcon size={18}/>} label="Business Profile" />
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 pb-24 md:pb-0 overflow-x-hidden">
+        {view === 'dashboard' && <Dashboard profile={profile} docs={documents} onAction={setView} onOpen={setActiveDoc} />}
+        {view === 'history' && <History docs={documents} onOpen={(d) => { setActiveDoc(d); setView('preview'); }} onDuplicate={duplicateDoc} />}
+        {view === 'settings' && <ProfileSettings profile={profile} onSave={saveProfile} />}
+        {view === 'create-invoice' && <DocumentBuilder type="Invoice" profile={profile} customers={customers} onSave={saveDocument} onBack={() => setView('dashboard')} />}
+        {view === 'create-receipt' && <DocumentBuilder type="Receipt" profile={profile} customers={customers} onSave={saveDocument} onBack={() => setView('dashboard')} />}
+        {view === 'preview' && <ProfessionalPreview doc={activeDoc} profile={profile} onBack={() => setView('dashboard')} />}
       </main>
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-slate-100 flex justify-around p-6">
-        <button onClick={() => setView('dashboard')} className="text-slate-900"><TrendingUp /></button>
-        <button onClick={() => setView('create-invoice')} className="bg-green-500 text-white p-4 rounded-full -mt-12 shadow-xl shadow-green-100"><Plus /></button>
-        <button className="text-slate-300"><SettingsIcon /></button>
+
+      {/* Mobile Nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around p-4 z-40">
+        <button onClick={() => setView('dashboard')} className={view === 'dashboard' ? 'text-green-600' : 'text-slate-400'}><TrendingUp /></button>
+        <button onClick={() => setView('create-invoice')} className="bg-green-500 text-white p-4 rounded-full -mt-12 shadow-xl border-4 border-slate-50"><Plus /></button>
+        <button onClick={() => setView('history')} className={view === 'history' ? 'text-green-600' : 'text-slate-400'}><FileText /></button>
       </nav>
     </div>
   );
 };
 
-// @ts-ignore
-ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
+/* --- SUB-COMPONENTS --- */
+
+const NavItem = ({ active, onClick, icon, label }: any) => (
+  <button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition ${active ? 'bg-green-500 text-white shadow-lg shadow-green-900/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+    {icon} {label}
+  </button>
+);
+
+const LandingPage = ({ onStart }: any) => (
+  <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-8 text-center">
+    <div className="bg-green-500 p-4 rounded-3xl mb-8 shadow-2xl animate-bounce"><Zap size={48} fill="currentColor"/></div>
+    <h1 className="text-5xl font-black mb-4 tracking-tighter">ApaBizDesk</h1>
+    <p className="text-slate-400 text-lg mb-10 max-w-md">The professional, international invoicing engine for modern businesses.</p>
+    <button onClick={onStart} className="w-full max-w-xs py-5 bg-green-500 hover:bg-green-400 text-white font-black rounded-2xl text-lg transition-all shadow-xl shadow-green-500/20">Create My First Invoice</button>
+  </div>
+);
+
+const ProfileSettings = ({ profile, onSave, isNew }: any) => {
+  const [data, setData] = useState(profile || { name: '', email: '', phone: '', address: '', website: '', taxId: '', currency: 'USD', paymentDetails: '', terms: 'Due on Receipt', logo: '', signature: '' });
+
+  const handleImage = (e: any, key: string) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onloadend = () => setData({ ...data, [key]: reader.result });
+    if (file) reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto p-6 md:py-12">
+      <div className="mb-10">
+        <h2 className="text-3xl font-black text-slate-900">{isNew ? "Setup Your Business" : "Business Profile"}</h2>
+        <p className="text-slate-500">This information will appear on all your documents.</p>
+      </div>
+      
+      <form className="space-y-8" onSubmit={(e) => { e.preventDefault(); onSave(data); }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <label className="block text-sm font-bold text-slate-700">Business Logo</label>
+            <div className="h-40 w-full bg-white border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center overflow-hidden relative group">
+              {data.logo ? <img src={data.logo} className="h-full w-full object-contain p-4" /> : <div className="text-center text-slate-400"><Building2 size={32} className="mx-auto mb-2"/> <span className="text-xs">Upload Logo</span></div>}
+              <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleImage(e, 'logo')} />
+            </div>
+          </div>
+          <div className="space-y-4">
+            <label className="block text-sm font-bold text-slate-700">Authorized Signature</label>
+            <div className="h-40 w-full bg-white border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center overflow-hidden relative group">
+              {data.signature ? <img src={data.signature} className="h-full w-full object-contain p-4" /> : <div className="text-center text-slate-400"><Plus size={32} className="mx-auto mb-2"/> <span className="text-xs">Upload Signature</span></div>}
+              <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleImage(e, 'signature')} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Input label="Business Name" value={data.name} onChange={v => setData({...data, name: v})} required />
+            <Input label="Email Address" value={data.email} onChange={v => setData({...data, email: v})} required />
+            <Input label="Phone Number" value={data.phone} onChange={v => setData({...data, phone: v})} />
+            <Input label="Website" value={data.website} onChange={v => setData({...data, website: v})} placeholder="www.example.com" />
+          </div>
+          <Input label="Physical Address" value={data.address} onChange={v => setData({...data, address: v})} isArea />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Input label="Tax / VAT Number" value={data.taxId} onChange={v => setData({...data, taxId: v})} />
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Default Currency</label>
+              <select className="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none font-bold" value={data.currency} onChange={e => setData({...data, currency: e.target.value})}>
+                {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.name} ({c.symbol})</option>)}
+              </select>
+            </div>
+          </div>
+          <Input label="Default Payment Terms" value={data.terms} onChange={v => setData({...data, terms: v})} placeholder="e.g. Net 30" />
+          <Input label="Payment Details (Bank Info)" value={data.paymentDetails} onChange={v => setData({...data, paymentDetails: v})} isArea placeholder="Bank Name, Account Number, Swift..." />
+        </div>
+
+        <button className="w-full py-5 bg-slate-900 text-white font-black rounded-3xl shadow-xl">Save Business Profile</button>
+      </form>
+    </div>
+  );
+};
+
+const Dashboard = ({ profile, docs, onAction, onOpen }: any) => {
+  const currency = CURRENCIES.find(c => c.code === profile.currency) || CURRENCIES[0];
+  const totalInvoiced = docs.reduce((a, b) => a + b.total, 0);
+  const totalPaid = docs.filter(d => d.status === 'Paid').reduce((a, b) => a + b.total, 0);
+  const outstanding = totalInvoiced - totalPaid;
+
+  return (
+    <div className="p-6 md:p-12">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+        <div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Overview</h1>
+          <p className="text-slate-500 font-medium">Tracking your business growth.</p>
+        </div>
+        <div className="flex gap-3 w-full md:w-auto">
+          <button onClick={() => onAction('create-invoice')} className="flex-1 md:flex-none px-6 py-4 bg-green-500 text-white font-black rounded-2xl shadow-lg shadow-green-500/20 flex items-center justify-center gap-2">
+            <Plus size={20}/> New Invoice
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <StatCard label="Total Invoiced" value={formatCurr(totalInvoiced, currency.symbol)} color="bg-blue-500" icon={<FileText className="text-white"/>} />
+        <StatCard label="Total Paid" value={formatCurr(totalPaid, currency.symbol)} color="bg-green-500" icon={<CheckCircle2 className="text-white"/>} />
+        <StatCard label="Outstanding" value={formatCurr(outstanding, currency.symbol)} color="bg-orange-500" icon={<Clock className="text-white"/>} />
+      </div>
+
+      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+          <h3 className="font-black text-lg">Recent Documents</h3>
+          <button onClick={() => onAction('history')} className="text-green-600 font-bold text-sm">View All</button>
+        </div>
+        <div className="divide-y divide-slate-50">
+          {docs.slice(-5).reverse().map((doc, i) => (
+            <div key={i} onClick={() => onOpen(doc)} className="p-6 hover:bg-slate-50 cursor-pointer transition flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-2xl ${doc.type === 'Invoice' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}`}>
+                  {doc.type === 'Invoice' ? <FileText size={20}/> : <Receipt size={20}/>}
+                </div>
+                <div>
+                  <p className="font-black text-slate-900">{doc.number}</p>
+                  <p className="text-xs font-bold text-slate-400">{doc.clientName || "Customer"}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-black text-slate-900">{formatCurr(doc.total, (CURRENCIES.find(c => c.code === doc.currency)?.symbol || '$'))}</p>
+                <StatusBadge status={doc.status} />
+              </div>
+            </div>
+          ))}
+          {docs.length === 0 && <div className="p-20 text-center text-slate-300 font-bold">No documents created yet</div>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const DocumentBuilder = ({ type, profile, onSave, onBack }: any) => {
+  const [doc, setDoc] = useState({
+    type,
+    number: `${type === 'Invoice' ? 'INV' : 'REC'}-${Math.floor(1000 + Math.random() * 9000)}`,
+    date: new Date().toISOString().split('T')[0],
+    dueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+    currency: profile.currency,
+    clientName: '',
+    clientEmail: '',
+    clientAddress: '',
+    status: 'Unpaid',
+    items: [{ id: 1, desc: '', qty: 1, price: 0 }],
+    discount: 0,
+    tax: 0,
+    notes: profile.terms,
+    paymentDetails: profile.paymentDetails
+  });
+
+  const currencySymbol = CURRENCIES.find(c => c.code === doc.currency)?.symbol || '$';
+  const subtotal = doc.items.reduce((a, b) => a + (b.qty * b.price), 0);
+  const taxAmount = subtotal * (doc.tax / 100);
+  const total = subtotal - doc.discount + taxAmount;
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 md:py-12">
+      <div className="flex items-center justify-between mb-10">
+        <button onClick={onBack} className="flex items-center gap-2 font-black text-slate-400 uppercase text-xs tracking-widest"><ChevronLeft size={16}/> Back</button>
+        <div className="text-right">
+          <h2 className="text-3xl font-black text-slate-900">New {type}</h2>
+          <p className="text-xs font-bold text-slate-400"># {doc.number}</p>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {/* Customer & Settings */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
+             <h3 className="font-black text-slate-900 border-b border-slate-50 pb-4">Client Details</h3>
+             <Input label="Customer Name" value={doc.clientName} onChange={v => setDoc({...doc, clientName: v})} required />
+             <Input label="Customer Email" value={doc.clientEmail} onChange={v => setDoc({...doc, clientEmail: v})} />
+             <Input label="Customer Address" value={doc.clientAddress} onChange={v => setDoc({...doc, clientAddress: v})} isArea />
+          </div>
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
+             <h3 className="font-black text-slate-900 border-b border-slate-50 pb-4">Document Meta</h3>
+             <Input label="Issue Date" type="date" value={doc.date} onChange={v => setDoc({...doc, date: v})} />
+             <Input label="Due Date" type="date" value={doc.dueDate} onChange={v => setDoc({...doc, dueDate: v})} />
+             <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Currency</label>
+                <select className="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none font-bold" value={doc.currency} onChange={e => setDoc({...doc, currency: e.target.value})}>
+                  {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} ({c.symbol})</option>)}
+                </select>
+             </div>
+             <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Status</label>
+                <select className="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none font-bold" value={doc.status} onChange={e => setDoc({...doc, status: e.target.value})}>
+                  {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+             </div>
+          </div>
+        </div>
+
+        {/* Items */}
+        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
+          <h3 className="font-black text-slate-900 border-b border-slate-50 pb-4">Line Items</h3>
+          {doc.items.map((item, i) => (
+            <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-slate-50/50 p-4 rounded-3xl group">
+              <div className="md:col-span-6">
+                <Input label="Description" value={item.desc} onChange={v => { const n = [...doc.items]; n[i].desc = v; setDoc({...doc, items: n}); }} />
+              </div>
+              <div className="md:col-span-2">
+                <Input label="Qty" type="number" value={item.qty} onChange={v => { const n = [...doc.items]; n[i].qty = Number(v); setDoc({...doc, items: n}); }} />
+              </div>
+              <div className="md:col-span-3">
+                <Input label={`Price (${currencySymbol})`} type="number" value={item.price} onChange={v => { const n = [...doc.items]; n[i].price = Number(v); setDoc({...doc, items: n}); }} />
+              </div>
+              <div className="md:col-span-1 pb-4 flex justify-center">
+                <button onClick={() => setDoc({...doc, items: doc.items.filter(it => it.id !== item.id)})} className="text-slate-300 hover:text-red-500"><Trash2 size={18}/></button>
+              </div>
+            </div>
+          ))}
+          <button onClick={() => setDoc({...doc, items: [...doc.items, { id: Date.now(), desc: '', qty: 1, price: 0 }]})} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 font-black text-sm uppercase tracking-widest">+ Add Item</button>
+        </div>
+
+        {/* Totals & Notes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-4">
+            <h3 className="font-black text-slate-900 border-b border-slate-50 pb-4">Terms & Details</h3>
+            <Input label="Payment Details" value={doc.paymentDetails} onChange={v => setDoc({...doc, paymentDetai
